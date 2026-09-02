@@ -14,7 +14,16 @@ yolo1 = YOLO("yolo26n.engine")
 object_list = [0]
 
 # Ignore List for Ignorable Objects
-ignore_list = [1]
+ignore_list = []
+
+clicks = []
+
+def on_click(event, x, y, flags, param):
+    if event == 1: # lEFT bUTTON cLICK
+        clicks.append((x,y))
+        
+# LaMa Toggle
+Use_Lama = True
 
 # Load LaMa
 try:
@@ -27,7 +36,6 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 MODEL_IN_H = 240
 MODEL_IN_W = 432
-USE_LAMA = True
 
 # Start Video Capture
 cap = cv2.VideoCapture(0)
@@ -38,11 +46,6 @@ if not cap.isOpened():
     sys.exit(1)
 
 frame_count = 0
-
-# --- INITIALIZE FPS VARIABLES ---
-fps_start_time = time.time()
-fps_frame_counter = 0
-fps_to_display = 0.0
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -97,7 +100,7 @@ while cap.isOpened():
         mask_smooth = cv2.GaussianBlur(mask_np_255, (15, 15), 0)
         mask_smooth = np.ascontiguousarray(mask_smooth, dtype=np.uint8)
 
-    if mask_np is not None and np.any(mask_np > 0):
+    if mask_np is not None and np.any(mask_np > 0) and Use_Lama is True:
         frame_rgb = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
 
         try:
@@ -119,20 +122,6 @@ while cap.isOpened():
         final_frame = frame_resized
 
     final_display = cv2.resize(final_frame, (original_w, original_h))
-
-    fps_frame_counter += 1
-    current_time = time.time()
-    elapsed_time = current_time - fps_start_time
-
-    if elapsed_time > 1.0:
-        fps_to_display = fps_frame_counter / elapsed_time
-        fps_frame_counter = 0
-        fps_start_time = current_time
-
-    cv2.putText(
-        final_display, f"FPS: {fps_to_display:.1f}", (10, 30),
-        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2
-    )
     
     # Print List of Detected Objects
     for o, objectx in enumerate(object_list):
@@ -145,6 +134,12 @@ while cap.isOpened():
     		cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2
     	)
     	
+    #Toggle button
+    cv2.create_toggle_button(
+    )
+
+    cv2.imshow("Output", final_display)
+    	
     # Test Toggle
     key = cv2.waitKey(1) & 0xFF
     if key == ord('1'):
@@ -153,8 +148,13 @@ while cap.isOpened():
               
         elif 1 in ignore_list:
             ignore_list.remove(1)
-
-    cv2.imshow("Output", final_display)
+            
+            
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('r'):
+    # Clear Ignore List
+        ignore_list = []
+        Use_Lama = not Use_Lama
 
     # Controls
     key = cv2.waitKey(1) & 0xFF
